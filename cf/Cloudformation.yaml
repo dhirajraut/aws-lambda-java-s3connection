@@ -1,0 +1,140 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Sample Lambda Function
+Parameters:
+    env:
+        Description: "Enter The Environment"
+        Type: "String"
+        Default: "dev"
+        AllowedValues:
+            - dev
+            - dev1
+            - dev2
+            - dev3
+            - st
+            - pt
+            - uat
+            - prod
+Mappings:
+    dev:
+        VPC:
+            SubnetIds:
+                - subnet-0037259c69e95b302
+                - subnet-0fa0cac8fc588da88
+            VpcId: vpc-0ec918e11c1c525ef
+            SecurityGroupIds:
+                - sg-0a69b6cac756760a2
+        role:
+            RoleArn: arn:aws:iam::733330203478:role/ets-snr-dev-common-role
+    dev1:
+        VPC:
+            SubnetIds:
+                - subnet-0ed001d46068d56c3
+                - subnet-000a74fef87495a24
+            VpcId: vpc-0c60b8e1879dfcdad
+            SecurityGroupIds:
+                - sg-0075949317f584d78
+        role:
+            RoleArn: arn:aws:iam::733330203478:role/ets-snr-dev1-common-role
+    dev2:
+        VPC:
+            SubnetIds:
+                - subnet-0ed001d46068d56c3
+                - subnet-000a74fef87495a24
+            VpcId: vpc-0c60b8e1879dfcdad
+            SecurityGroupIds:
+                - sg-07dcd34830d49c7ad
+        role:
+            RoleArn: arn:aws:iam::733330203478:role/ets-snr-dev2-common-role
+    dev3:
+        VPC:
+            SubnetIds:
+                - subnet-0ed001d46068d56c3
+                - subnet-000a74fef87495a24
+            VpcId: vpc-0c60b8e1879dfcdad
+            SecurityGroupIds:
+                - sg-02dc3ac6724b9f8e9
+        role:
+            RoleArn: arn:aws:iam::733330203478:role/ets-snr-dev3-common-role
+    st:
+        VPC:
+            SubnetIds:
+                - subnet-06ebfd125fa278d50
+                - subnet-067f2bac6cb036c0d
+            VpcId: vpc-0c56119bdc73dc20b
+            SecurityGroupIds:
+                - sg-06c39b96b69da2445
+        role:
+            RoleArn: arn:aws:iam::733330203478:role/ets-snr-st-common-role
+    pt:
+        VPC:
+            SubnetIds:
+                - subnet-06ebfd125fa278d50
+                - subnet-067f2bac6cb036c0d
+            VpcId: vpc-0c56119bdc73dc20b
+            SecurityGroupIds:
+                - sg-0946892fa816bed0c
+        role:
+            RoleArn: arn:aws:iam::733330203478:role/ets-snr-pt-common-role
+    uat:
+        VPC:
+            SubnetIds:
+                - subnet-06801aec0a3d2b32c
+                - subnet-0070fddea1120f860
+            VpcId: vpc-0c2cb1dd411635429
+            SecurityGroupIds:
+                - sg-07e707721f93f4da3
+        role:
+            RoleArn: arn:aws:iam::733330203478:role/ets-snr-uat-common-role
+    prod:
+        VPC:
+            SubnetIds:
+                - subnet-04180cc56e0d91123
+                - subnet-0b4c32f42d462f0a7
+                - subnet-0b0659b49dfd0141e
+            VpcId: vpc-0254674e6f2d333be
+            SecurityGroupIds:
+                - sg-00a78ccb150fa78fa
+        role:
+            RoleArn: arn:aws:iam::643740130987:role/ets-snr-prod-common-role
+Resources:
+    Role:
+        Type: "AWS::IAM::Role"
+        Properties:
+            RoleName: !Sub "${AWS::StackName}-role"
+            Description: "Allows Lambda to access S3 bucket"
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                      Principal:
+                          Service:
+                              - "lambda.amazonaws.com"
+                      Action:
+                          - "sts:AssumeRole"
+            ManagedPolicyArns:
+                 - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+                 - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+                 - "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+    Function:
+        Type: AWS::Lambda::Function
+        Properties:
+            FunctionName: !Sub "${AWS::StackName}-lambda"
+            Handler: "com.github.dhirajraut.aws.lambdas.Handler::handleRequest"
+            Role: !GetAtt Role.Arn
+            Code:
+                S3Bucket: ets-snr-s3-testbucket-dr
+                S3Key: aws-lambda-s3-connection-0.0.1-SNAPSHOT.jar
+            Runtime: java11
+            Timeout: 900
+            MemorySize: 512
+            TracingConfig:
+                Mode: Active
+            VpcConfig:
+                SecurityGroupIds:
+                    !FindInMap [!Ref env, VPC, SecurityGroupIds]
+                SubnetIds: !FindInMap [!Ref env, VPC, SubnetIds]
+            Tags:
+                 - Key: Name
+                   Value: !Sub "${AWS::StackName}-lambda"
+                 - Key: Temp
+                   Value: !Sub "${AWS::StackName}-lambda"
